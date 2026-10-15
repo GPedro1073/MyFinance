@@ -423,11 +423,40 @@
         </div>
 
         <button id="salvar-conta" type="submit">
-            + Cadastrar conta fixa
-        </button>
+    + Cadastrar conta fixa
+</button>
+
+<button
+    id="cancelar-edicao-conta"
+    type="button"
+    class="botao-secundario"
+    hidden>
+    Cancelar edição
+</button>
     </form>
 </section>
+    <!-- GERENCIAR DESPESAS FIXAS -->
+<section class="painel">
+    <h3>Gerenciar despesas fixas</h3>
 
+    <div class="tabela-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>Descrição</th>
+                    <th>Categoria</th>
+                    <th>Valor</th>
+                    <th>Vencimento</th>
+                    <th>Status</th>
+                    <th>Ações</th>
+                </tr>
+            </thead>
+
+            <tbody id="lista-cadastros-fixos">
+            </tbody>
+        </table>
+    </div>
+</section>
             <section class="painel"
                      id="painel-contas">
 

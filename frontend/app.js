@@ -371,7 +371,10 @@ async function salvarTransacao(evento) {
 document.addEventListener("DOMContentLoaded", async () => {
     prepararFiltros();
     
-
+    $("cancelar-edicao-conta").addEventListener(
+    "click",
+    cancelarEdicaoConta
+    );
     $("atualizar").addEventListener(
         "click",
         atualizarDashboard
@@ -390,12 +393,17 @@ document.addEventListener("DOMContentLoaded", async () => {
     "submit",
     salvarContaFixa
 );
-
+    // Atualizar a lista de contas fixas
+$("atualizar-contas").addEventListener(
+    "click",
+    carregarVencimentos
+);
 
     try {
         
         await carregarCategorias();
-        await atualizarDashboard();
+await atualizarDashboard();
+await carregarContasFixas();
     } catch (erro) {
         mensagem(`Erro ao iniciar: ${erro.message}`);
     }
@@ -424,8 +432,19 @@ function abrirPagina(nome) {
 }
 
 document.querySelectorAll(".menu-item").forEach((botao) => {
-    botao.addEventListener("click", () => {
-        abrirPagina(botao.dataset.pagina);
+    botao.addEventListener("click", async () => {
+        const pagina = botao.dataset.pagina;
+
+        abrirPagina(pagina);
+
+        if (pagina === "contas") {
+    try {
+        await carregarContasFixas();
+        await carregarVencimentos();
+    } catch (erro) {
+        mensagem(`Erro ao carregar contas: ${erro.message}`);
+    }
+}
     });
 });
 
@@ -691,6 +710,8 @@ async function salvarContaFixa(evento) {
     const botao = $("salvar-conta");
     botao.disabled = true;
 
+    const editando = contaFixaEmEdicao !== null;
+
     const dados = {
         descricao: $("conta-descricao").value.trim(),
         valor: Number($("conta-valor").value).toFixed(2),
@@ -700,23 +721,41 @@ async function salvarContaFixa(evento) {
     };
 
     try {
-        await requisicao("/contas-fixas", {
-            method: "POST",
+        // Mantém o status atual quando estamos editando
+        if (editando) {
+            const contaAtual = await requisicao(
+                `/contas-fixas/${contaFixaEmEdicao}`
+            );
+
+            dados.ativa = contaAtual.ativa;
+        }
+
+        const url = editando
+            ? `/contas-fixas/${contaFixaEmEdicao}`
+            : "/contas-fixas";
+
+        await requisicao(url, {
+            method: editando ? "PUT" : "POST",
             headers: {
                 "Content-Type": "application/json"
             },
             body: JSON.stringify(dados)
         });
 
-        $("form-conta-fixa").reset();
+        cancelarEdicaoConta();
 
-        mensagem("Conta fixa cadastrada com sucesso!");
-
-        // Atualiza a listagem de contas cadastradas
         await carregarContasFixas();
+        await carregarVencimentos();
+        await atualizarDashboard();
+
+        mensagem(
+            editando
+                ? "Conta fixa atualizada com sucesso!"
+                : "Conta fixa cadastrada com sucesso!"
+        );
 
     } catch (erro) {
-        mensagem(`Erro ao cadastrar conta: ${erro.message}`);
+        mensagem(`Erro ao salvar conta: ${erro.message}`);
     } finally {
         botao.disabled = false;
     }
@@ -724,8 +763,262 @@ async function salvarContaFixa(evento) {
 
 async function carregarContasFixas() {
     const contas = await requisicao("/contas-fixas");
+    const tabela = $("lista-cadastros-fixos");
 
-    console.log("Contas fixas cadastradas:", contas);
+    tabela.replaceChildren();
 
-    return contas;
+    if (contas.length === 0) {
+        const linha = tabela.insertRow();
+        const celula = linha.insertCell();
+
+        celula.colSpan = 6;
+        celula.textContent = "Nenhuma despesa fixa cadastrada.";
+        return;
+    }
+
+    contas.forEach((conta) => {
+        const linha = tabela.insertRow();
+
+        const categoria = categorias.find(
+            c => c.id === conta.categoria_id
+        );
+
+        const dados = [
+            conta.descricao,
+            categoria?.nome ?? "Sem categoria",
+            moeda(conta.valor),
+            `Dia ${conta.dia_vencimento}`,
+            conta.ativa ? "Ativa" : "Inativa"
+        ];
+
+        dados.forEach((valor) => {
+            const celula = linha.insertCell();
+            celula.textContent = valor;
+        });
+
+        const acoes = linha.insertCell();
+        acoes.className = "acoes";
+
+        const editar = document.createElement("button");
+        editar.type = "button";
+        editar.textContent = "✏️";
+        editar.className = "btn-editar btn-icone";
+        editar.title = "Editar conta fixa";
+
+        editar.addEventListener("click", () => {
+            editarContaFixa(conta);
+        });
+
+        const excluir = document.createElement("button");
+        excluir.type = "button";
+        excluir.textContent = "🗑️";
+        excluir.className = "btn-excluir btn-icone";
+        excluir.title = "Excluir conta fixa";
+
+        excluir.addEventListener("click", () => {
+            excluirContaFixa(conta);
+        });
+
+        const ativar = document.createElement("button");
+        ativar.type = "button";
+        ativar.textContent = conta.ativa ? "Desativar" : "Ativar";
+        ativar.className = "botao-secundario";
+
+        ativar.addEventListener("click", () => {
+            desativarContaFixa(conta);
+        });
+
+        acoes.append(editar, excluir, ativar);
+    });
+}
+// =====================================
+// VENCIMENTOS E PAGAMENTOS
+// =====================================
+
+async function carregarVencimentos() {
+    const hoje = new Date();
+    const ano = Number($("ano").value) || hoje.getFullYear();
+    const mes = Number($("mes").value) || hoje.getMonth() + 1;
+
+    const vencimentos = await requisicao(
+        `/pagamentos/vencimentos?ano=${ano}&mes=${mes}`
+    );
+
+    const tabela = $("lista-contas");
+    tabela.replaceChildren();
+
+    let totalPago = 0;
+    let totalPendente = 0;
+
+    vencimentos.forEach((conta) => {
+        const linha = tabela.insertRow();
+        const pago = conta.status === "pago";
+
+        if (pago) {
+            totalPago += Number(conta.valor);
+        } else {
+            totalPendente += Number(conta.valor);
+        }
+
+        const dados = [
+            conta.descricao,
+            conta.data_vencimento.split("-").reverse().join("/"),
+            moeda(conta.valor),
+            pago ? "✅ Pago" : "⏳ Pendente"
+        ];
+
+        dados.forEach((valor) => {
+            const celula = linha.insertCell();
+            celula.textContent = valor;
+        });
+
+        const acoes = linha.insertCell();
+
+        const botao = document.createElement("button");
+        botao.type = "button";
+        botao.textContent = pago ? "Estornar" : "Marcar como pago";
+        botao.className = pago
+            ? "botao-secundario"
+            : "botao-pagar";
+
+        botao.addEventListener("click", async () => {
+            const confirmado = confirm(
+                pago
+                    ? `Deseja estornar ${conta.descricao}?`
+                    : `Confirmar pagamento de ${conta.descricao}?`
+            );
+
+            if (!confirmado) return;
+
+            botao.disabled = true;
+
+            try {
+                const url = pago
+                    ? `/pagamentos/vencimentos/${conta.id}/estornar`
+                    : `/pagamentos/vencimentos/${conta.id}/pagar`;
+
+                const opcoes = {
+                    method: "POST"
+                };
+
+                if (!pago) {
+                    opcoes.headers = {
+                        "Content-Type": "application/json"
+                    };
+
+                    opcoes.body = JSON.stringify({
+                        data_pagamento: dataLocal()
+                    });
+                }
+
+                await requisicao(url, opcoes);
+
+                await carregarVencimentos();
+                await atualizarDashboard();
+
+                mensagem(
+                    pago
+                        ? "Pagamento estornado com sucesso!"
+                        : "Pagamento registrado com sucesso!"
+                );
+
+            } catch (erro) {
+                mensagem(`Erro: ${erro.message}`);
+                botao.disabled = false;
+            }
+        });
+
+        acoes.appendChild(botao);
+    });
+
+    $("total-pago").textContent = moeda(totalPago);
+    $("total-pendente").textContent = moeda(totalPendente);
+}
+// ======================================
+// GERENCIAMENTO DE DESPESAS FIXAS
+// ======================================
+
+let contaFixaEmEdicao = null;
+
+function cancelarEdicaoConta() {
+    contaFixaEmEdicao = null;
+
+    $("form-conta-fixa").reset();
+
+    $("salvar-conta").textContent = "+ Cadastrar conta fixa";
+    $("cancelar-edicao-conta").hidden = true;
+}
+
+function editarContaFixa(conta) {
+    contaFixaEmEdicao = conta.id;
+
+    $("conta-descricao").value = conta.descricao;
+    $("conta-valor").value = conta.valor;
+    $("conta-vencimento").value = conta.dia_vencimento;
+    $("conta-categoria").value = conta.categoria_id;
+
+    $("salvar-conta").textContent = "Salvar alterações";
+    $("cancelar-edicao-conta").hidden = false;
+
+    $("form-conta-fixa").scrollIntoView({
+        behavior: "smooth",
+        block: "center"
+    });
+}
+
+async function excluirContaFixa(conta) {
+    const confirmado = confirm(
+        `Deseja excluir "${conta.descricao}"?`
+    );
+
+    if (!confirmado) return;
+
+    try {
+        await requisicao(`/contas-fixas/${conta.id}`, {
+            method: "DELETE"
+        });
+
+        if (contaFixaEmEdicao === conta.id) {
+            cancelarEdicaoConta();
+        }
+
+        await carregarContasFixas();
+        await carregarVencimentos();
+
+        mensagem("Conta fixa excluída com sucesso!");
+
+    } catch (erro) {
+        mensagem(`Não foi possível excluir: ${erro.message}`);
+    }
+}
+
+async function desativarContaFixa(conta) {
+    const dados = {
+        descricao: conta.descricao,
+        valor: conta.valor,
+        dia_vencimento: conta.dia_vencimento,
+        categoria_id: conta.categoria_id,
+        ativa: !conta.ativa
+    };
+
+    try {
+        await requisicao(`/contas-fixas/${conta.id}`, {
+            method: "PUT",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify(dados)
+        });
+
+        await carregarContasFixas();
+
+        mensagem(
+            dados.ativa
+                ? "Conta reativada!"
+                : "Conta desativada!"
+        );
+
+    } catch (erro) {
+        mensagem(`Erro: ${erro.message}`);
+    }
 }
