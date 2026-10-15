@@ -1,0 +1,536 @@
+
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
+
+    <title>MyFinance — Controle Financeiro</title>
+
+    <link rel="stylesheet" href="/static/style.css">
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.8/dist/chart.umd.min.js" defer></script>
+<script src="/static/app.js" defer></script>
+</head>
+
+<body>
+
+    <!-- ===================================== -->
+    <!-- CABEÇALHO DO APLICATIVO               -->
+    <!-- ===================================== -->
+
+    <header class="topo">
+        <div class="marca">
+            <span class="logo">💸</span>
+            <h1>MyFinance</h1>
+        </div>
+
+        <span class="subtitulo">
+            Seu controle financeiro pessoal
+        </span>
+    </header>
+
+
+    <!-- ===================================== -->
+    <!-- MENU LATERAL                          -->
+    <!-- ===================================== -->
+
+    <nav class="menu-lateral" aria-label="Menu principal">
+
+        <h3>MENU</h3>
+
+        <button type="button"
+                class="menu-item ativo"
+                data-pagina="inicio">
+            ◈ Início
+        </button>
+
+        <button type="button"
+                class="menu-item"
+                data-pagina="movimentacoes">
+            ↔ Movimentações
+        </button>
+
+        <button type="button"
+                class="menu-item"
+                data-pagina="graficos">
+            ◉ Gráficos
+        </button>
+
+        <button type="button"
+                class="menu-item"
+                data-pagina="contas">
+            ▣ Contas fixas
+        </button>
+
+        <button type="button"
+                class="menu-item"
+                data-pagina="configuracoes">
+            ⚙ Configurações
+        </button>
+
+    </nav>
+
+
+    <!-- ===================================== -->
+    <!-- CONTEÚDO PRINCIPAL                    -->
+    <!-- ===================================== -->
+
+    <main class="container">
+
+        <!-- Mensagens de sucesso e erro -->
+        <p id="mensagem" role="status"
+           aria-live="polite"></p>
+
+
+        <!-- ================================= -->
+        <!-- PÁGINA 1: INÍCIO                  -->
+        <!-- ================================= -->
+
+        <section id="pagina-inicio" class="pagina">
+
+            <section class="cabecalho">
+
+                <div>
+                    <h2>Meu dashboard</h2>
+                    <p>
+                        Acompanhe suas finanças em um só lugar.
+                    </p>
+                </div>
+
+                <div class="filtros">
+
+                    <select id="mes"
+                            aria-label="Selecionar mês">
+                    </select>
+
+                    <input type="number"
+                           id="ano"
+                           min="2000"
+                           max="2100"
+                           aria-label="Selecionar ano">
+
+                    <button type="button"
+                            id="atualizar"
+                            class="botao-secundario">
+                        Atualizar
+                    </button>
+
+                </div>
+            </section>
+
+
+            <!-- CARDS FINANCEIROS -->
+
+            <section class="cards">
+
+                <article class="card">
+                    <p>Receitas do mês</p>
+                    <h3 id="receitas" class="verde">
+                        R$ 0,00
+                    </h3>
+                </article>
+
+                <article class="card">
+                    <p>Despesas do mês</p>
+                    <h3 id="despesas" class="vermelho">
+                        R$ 0,00
+                    </h3>
+                </article>
+
+                <article class="card">
+                    <p>Saldo do mês</p>
+                    <h3 id="saldo">
+                        R$ 0,00
+                    </h3>
+                </article>
+
+            </section>
+
+        </section>
+
+
+        <!-- ================================= -->
+        <!-- PÁGINA 2: MOVIMENTAÇÕES           -->
+        <!-- ================================= -->
+
+        <section id="pagina-movimentacoes"
+                 class="pagina"
+                 hidden>
+
+            <h2>Movimentações</h2>
+
+            <p>
+                Cadastre, edite e acompanhe suas receitas
+                e despesas.
+            </p>
+
+
+            <div class="colunas">
+
+                <!-- FORMULÁRIO -->
+
+                <section class="painel">
+
+                    <h3>Nova movimentação</h3>
+
+                    <form id="form-transacao">
+
+                        <label for="descricao">
+                            Descrição
+                        </label>
+
+                        <input id="descricao"
+                               maxlength="150"
+                               placeholder="Ex.: Supermercado"
+                               required>
+
+
+                        <label for="valor">
+                            Valor (R$)
+                        </label>
+
+                        <input id="valor"
+                               type="number"
+                               step="0.01"
+                               min="0.01"
+                               placeholder="0,00"
+                               required>
+
+
+                        <label for="tipo">
+                            Tipo
+                        </label>
+
+                        <select id="tipo">
+                            <option value="despesa">
+                                Despesa
+                            </option>
+
+                            <option value="receita">
+                                Receita
+                            </option>
+                        </select>
+
+
+                        <label for="categoria">
+                            Categoria
+                        </label>
+
+                        <select id="categoria" required>
+                            <option value="">
+                                Carregando...
+                            </option>
+                        </select>
+
+
+                        <label for="data">
+                            Data
+                        </label>
+
+                        <input id="data"
+                               type="date"
+                               required>
+
+
+                        <button id="salvar"
+                                type="submit">
+                            Salvar movimentação
+                        </button>
+
+                        <button id="cancelar-edicao"
+                                class="botao-secundario"
+                                type="button"
+                                hidden>
+                            Cancelar edição
+                        </button>
+
+                    </form>
+
+                </section>
+
+
+                <!-- GRÁFICO ANTIGO -->
+                <!-- Mantido para compatibilidade -->
+
+                <section class="painel">
+
+                    <h3>Despesas por categoria</h3>
+
+                    <div id="categorias-grafico"></div>
+
+                </section>
+
+            </div>
+
+
+            <!-- TABELA DE MOVIMENTAÇÕES -->
+
+            <section class="painel">
+
+                <h3>Movimentações do mês</h3>
+
+                <div class="tabela-container">
+
+                    <table>
+
+                        <thead>
+                            <tr>
+                                <th>Descrição</th>
+                                <th>Categoria</th>
+                                <th>Data</th>
+                                <th>Tipo</th>
+                                <th>Valor</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+
+                        <tbody id="lista-transacoes">
+                        </tbody>
+
+                    </table>
+
+                </div>
+
+            </section>
+
+        </section>
+
+
+        <!-- ================================= -->
+        <!-- PÁGINA 3: GRÁFICOS                -->
+        <!-- ================================= -->
+
+        <section id="pagina-graficos"
+                 class="pagina"
+                 hidden>
+
+            <h2>Análise financeira</h2>
+
+            <p>
+                Visualize como seus gastos e receitas
+                evoluem ao longo do tempo.
+            </p>
+
+            <div class="grade-graficos">
+
+                <!-- GRÁFICO DE ROSCA -->
+
+                <article class="painel">
+
+                    <h3>Gastos por categoria</h3>
+
+                    <canvas id="grafico-rosca"></canvas>
+
+                </article>
+
+
+                <!-- GRÁFICO DE BARRAS -->
+
+                <article class="painel">
+
+                    <h3>Receitas e despesas por mês</h3>
+
+                    <canvas id="grafico-barras"></canvas>
+
+                </article>
+
+
+                <!-- GRÁFICO DE LINHA -->
+
+                <article class="painel grafico-largo">
+
+                    <h3>Evolução do saldo</h3>
+
+                    <canvas id="grafico-linha"></canvas>
+
+                </article>
+
+            </div>
+
+        </section>
+
+
+        <!-- ================================= -->
+        <!-- PÁGINA 4: CONTAS FIXAS            -->
+        <!-- ================================= -->
+
+        <section id="pagina-contas"
+                 class="pagina"
+                 hidden>
+
+            <h2>Contas fixas</h2>
+
+            <p>
+                Acompanhe suas mensalidades,
+                vencimentos e pagamentos.
+            </p>
+            
+<!-- FORMULÁRIO DE NOVA CONTA FIXA -->
+
+<section class="painel painel-cadastro-conta">
+    <h3>Cadastrar conta fixa</h3>
+
+    <form id="form-conta-fixa">
+        <div class="campos-conta">
+
+            <div>
+                <label for="conta-descricao">
+                    Descrição
+                </label>
+                <input
+                    id="conta-descricao"
+                    maxlength="150"
+                    placeholder="Ex.: Internet"
+                    required>
+            </div>
+
+            <div>
+                <label for="conta-valor">
+                    Valor mensal (R$)
+                </label>
+                <input
+                    id="conta-valor"
+                    type="number"
+                    min="0.01"
+                    step="0.01"
+                    required>
+            </div>
+
+            <div>
+                <label for="conta-vencimento">
+                    Dia de vencimento
+                </label>
+                <input
+                    id="conta-vencimento"
+                    type="number"
+                    min="1"
+                    max="31"
+                    required>
+            </div>
+
+            <div>
+                <label for="conta-categoria">
+                    Categoria
+                </label>
+                <select id="conta-categoria" required>
+                    <option value="">Carregando...</option>
+                </select>
+            </div>
+
+        </div>
+
+        <button id="salvar-conta" type="submit">
+            + Cadastrar conta fixa
+        </button>
+    </form>
+</section>
+
+            <section class="painel"
+                     id="painel-contas">
+
+                <div class="cabecalho-contas">
+
+                    <h3>Contas fixas e pagamentos</h3>
+
+                    <button id="atualizar-contas"
+                            type="button">
+                        Atualizar contas
+                    </button>
+
+                </div>
+
+
+                <!-- RESUMO DE PAGAMENTOS -->
+
+                <div class="resumo-contas">
+
+                    <div>
+                        <p>Total pago</p>
+
+                        <h3 id="total-pago"
+                            class="verde">
+                            R$ 0,00
+                        </h3>
+                    </div>
+
+                    <div>
+                        <p>Total pendente</p>
+
+                        <h3 id="total-pendente"
+                            class="vermelho">
+                            R$ 0,00
+                        </h3>
+                    </div>
+
+                </div>
+
+
+                <!-- TABELA DE VENCIMENTOS -->
+
+                <div class="tabela-container">
+
+                    <table>
+
+                        <thead>
+                            <tr>
+                                <th>Conta</th>
+                                <th>Vencimento</th>
+                                <th>Valor</th>
+                                <th>Status</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+
+                        <tbody id="lista-contas">
+                        </tbody>
+
+                    </table>
+
+                </div>
+
+            </section>
+
+        </section>
+
+
+        <!-- ================================= -->
+        <!-- PÁGINA 5: CONFIGURAÇÕES           -->
+        <!-- ================================= -->
+
+        <section id="pagina-configuracoes"
+                 class="pagina"
+                 hidden>
+
+            <h2>Configurações</h2>
+
+            <p>
+                Gerencie as preferências do MyFinance.
+            </p>
+
+            <section class="painel">
+
+                <h3>Integração com Notion</h3>
+
+                <p>
+                    Os relatórios financeiros são
+                    sincronizados automaticamente
+                    todos os dias às 23h, conforme
+                    a tarefa configurada no Windows.
+                </p>
+
+                <p>
+                    Em breve, você poderá sincronizar
+                    manualmente por esta página.
+                </p>
+
+            </section>
+
+        </section>
+
+    </main>
+
+</body>
+</html>

@@ -1,0 +1,36 @@
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Credenciais
+.env
+.env.*
+!.env.example
+
+# Arquivos privados
+*.sqlite3
+backups/
+dados_pessoais/
+
+# Logs
+*.log
+
+# Arquivos temporários
+.DS_Store
+Thumbs.db
+__pycache__/
+*.py[cod]
+.venv/
+
+# Credenciais
+.env
+.env.*
+!.env.example
+
+# Arquivos privados
+*.sqlite3
+backups/
+dados_pessoais/

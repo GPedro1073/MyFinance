@@ -1,0 +1,480 @@
+
+:root {
+    font-family: Arial, Helvetica, sans-serif;
+    color: #e5e7eb;
+    background: #0b1120;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+}
+
+.topo {
+    background: #111827;
+    border-bottom: 1px solid #334155;
+    padding: 20px 6%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 15px;
+}
+
+.marca {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.logo {
+    font-size: 28px;
+}
+
+h1 {
+    font-size: 24px;
+    margin: 0;
+}
+
+h2 {
+    font-size: 28px;
+    margin-bottom: 8px;
+}
+
+h3 {
+    margin-top: 0;
+}
+
+.subtitulo, p {
+    color: #94a3b8;
+}
+
+.container {
+    max-width: 1200px;
+    margin: auto;
+    padding: 32px 20px;
+}
+
+.cabecalho {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 16px;
+    margin-bottom: 24px;
+}
+
+.filtros {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.cards {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    margin-bottom: 24px;
+}
+
+.card, .painel {
+    background: #1e293b;
+    border: 1px solid #334155;
+    border-radius: 14px;
+    padding: 24px;
+}
+
+.card h3 {
+    font-size: 28px;
+    margin-bottom: 0;
+    overflow-wrap: anywhere;
+}
+
+.verde {
+    color: #4ade80;
+}
+
+.vermelho {
+    color: #fb7185;
+}
+
+.colunas {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    margin-bottom: 24px;
+}
+
+label {
+    display: block;
+    margin: 14px 0 6px;
+    font-size: 14px;
+}
+
+input, select {
+    width: 100%;
+    padding: 12px;
+    background: #0f172a;
+    border: 1px solid #475569;
+    border-radius: 8px;
+    color: white;
+    font-size: 14px;
+}
+
+.filtros input {
+    width: 95px;
+}
+
+.filtros select {
+    width: 150px;
+}
+
+button {
+    padding: 12px 18px;
+    border: none;
+    border-radius: 8px;
+    background: #2563eb;
+    color: white;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+button:hover {
+    background: #1d4ed8;
+}
+
+button:disabled {
+    opacity: 0.6;
+    cursor: wait;
+}
+
+.botao-secundario {
+    background: #334155;
+}
+
+#salvar {
+    width: 100%;
+    margin-top: 22px;
+}
+
+#mensagem:not(:empty) {
+    padding: 12px;
+    background: #1e293b;
+    border-radius: 8px;
+}
+
+.categoria-item {
+    margin-bottom: 18px;
+}
+
+.categoria-topo {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 7px;
+}
+
+.barra {
+    height: 10px;
+    border-radius: 10px;
+    background: #334155;
+    overflow: hidden;
+}
+
+.barra-valor {
+    height: 100%;
+    background: #60a5fa;
+    border-radius: 10px;
+}
+
+.tabela-container {
+    overflow-x: auto;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    text-align: left;
+}
+
+th, td {
+    padding: 14px;
+    border-bottom: 1px solid #334155;
+}
+
+th {
+    color: #94a3b8;
+}
+
+@media (max-width: 800px) {
+    .cards, .colunas {
+        grid-template-columns: 1fr;
+    }
+
+    .topo {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+}
+
+.acoes {
+    display: table-cell;
+    white-space: nowrap;
+    vertical-align: middle;
+}
+
+.acoes .btn-icone {
+    margin-right: 6px;
+    vertical-align: middle;
+}
+
+.acoes .btn-icone:last-child {
+    margin-right: 0;
+}
+
+.btn-icone {
+    width: 38px;
+    height: 38px;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    border-radius: 10px;
+    border: 1px solid transparent;
+    transition: all 0.2s ease;
+}
+
+.btn-editar {
+    background: rgba(96, 165, 250, 0.12);
+    border-color: rgba(96, 165, 250, 0.25);
+}
+
+.btn-editar:hover {
+    background: rgba(96, 165, 250, 0.22);
+    transform: translateY(-1px);
+}
+
+.btn-excluir {
+    background: rgba(239, 68, 68, 0.12);
+    border-color: rgba(239, 68, 68, 0.25);
+}
+
+.btn-excluir:hover {
+    background: rgba(239, 68, 68, 0.22);
+    transform: translateY(-1px);
+}
+
+.btn-editar {
+    background: #334155;
+}
+
+.btn-editar:hover {
+    background: #475569;
+}
+
+.btn-excluir {
+    background: #7f1d1d;
+}
+
+.btn-excluir:hover {
+    background: #991b1b;
+}
+
+#cancelar-edicao {
+    margin-top: 8px;
+    width: 100%;
+}
+
+/* Preserva o atributo hidden mesmo
+   com o estilo geral de botões */
+[hidden] {
+    display: none !important;
+}
+
+/* MENU LATERAL - MYFINANCE 2.0 */
+
+.menu-lateral {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: 220px;
+
+    background: #111827;
+    border-right: 1px solid #263750;
+
+    padding: 32px 14px;
+
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+
+    z-index: 10;
+}
+
+.menu-lateral h3 {
+    color: #64748b;
+    font-size: 12px;
+    letter-spacing: 2px;
+    text-align: center;
+    margin: 10px 0 18px;
+}
+
+.menu-item {
+    width: 100%;
+    min-height: 46px;
+    margin: 0;
+    padding: 12px;
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    background: #17243a;
+    color: #a7b6ce;
+
+    border: 1px solid #263750;
+    border-radius: 10px;
+
+    font-size: 14px;
+    font-weight: 500;
+    text-align: center;
+    cursor: pointer;
+
+    transition: background 0.2s, border-color 0.2s;
+}
+
+.menu-item:hover {
+    background: #233754;
+    color: #ffffff;
+    border-color: #42618c;
+}
+
+.menu-item.ativo {
+    background: #203b60;
+    color: #bfdbfe;
+    border-color: #3b82f6;
+    box-shadow: 0 0 12px rgba(59, 130, 246, 0.12);
+}
+
+.topo {
+    margin-left: 220px;
+}
+
+.container {
+    margin-left: 220px;
+    max-width: none;
+    padding: 32px;
+}
+
+/* Esconder páginas não selecionadas */
+.pagina[hidden] {
+    display: none !important;
+}
+
+@media (max-width: 800px) {
+    .menu-lateral {
+        position: static;
+        width: 100%;
+        height: auto;
+        flex-direction: row;
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+
+    .menu-lateral h3 {
+        width: 100%;
+    }
+
+    .menu-item {
+        width: auto;
+        min-width: 130px;
+    }
+
+    .topo,
+    .container {
+        margin-left: 0;
+    }
+}
+/* GRÁFICOS - MYFINANCE */
+
+.grade-graficos {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 22px;
+    margin-top: 24px;
+}
+
+.grade-graficos .painel {
+    background: #17243a;
+    border: 1px solid #304563;
+    border-radius: 16px;
+    padding: 24px;
+    min-width: 0;
+    transition: border-color 0.2s;
+}
+
+.grade-graficos .painel:hover {
+    border-color: #3b82f6;
+}
+
+.grade-graficos .painel h3 {
+    color: #e2e8f0;
+    margin-bottom: 24px;
+}
+
+.grade-graficos canvas {
+    width: 100% !important;
+    max-height: 320px;
+}
+
+.grafico-largo {
+    grid-column: 1 / -1;
+}
+
+@media (max-width: 900px) {
+    .grade-graficos {
+        grid-template-columns: 1fr;
+    }
+
+    .grafico-largo {
+        grid-column: auto;
+    }
+}
+/* CADASTRO DE CONTAS FIXAS */
+
+.painel-cadastro-conta {
+    margin: 24px 0;
+    background: #17243a;
+    border: 1px solid #304563;
+}
+
+.campos-conta {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px 20px;
+}
+
+#salvar-conta {
+    margin-top: 24px;
+    padding: 13px 24px;
+    background: #1e40af;
+    border: 1px solid #3b82f6;
+    border-radius: 10px;
+    transition: 0.2s;
+}
+
+#salvar-conta:hover {
+    background: #2563eb;
+    box-shadow: 0 0 15px rgba(59, 130, 246, 0.2);
+}
+
+@media (max-width: 650px) {
+    .campos-conta {
+        grid-template-columns: 1fr;
+    }
+}
