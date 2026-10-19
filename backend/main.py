@@ -8,6 +8,7 @@ from psycopg import errors
 from pathlib import Path
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
+from auth import router as auth_router
 
 from database import get_connection
 
@@ -27,6 +28,7 @@ app = FastAPI(
 )
 
 app.include_router(pagamentos_router)
+app.include_router(auth_router)
 BASE_DIR = Path(__file__).resolve().parent.parent
 FRONTEND_DIR = BASE_DIR / "frontend"
 
