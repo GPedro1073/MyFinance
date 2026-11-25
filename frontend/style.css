@@ -478,3 +478,63 @@ th {
         grid-template-columns: 1fr;
     }
 }
+/* Acesso e sessão */
+
+.topo:not(.autenticado) {
+    margin-left: 0;
+}
+
+.acesso {
+    max-width: 480px;
+    margin: 48px auto;
+    padding: 0 20px;
+}
+
+.acesso h2 {
+    margin-top: 0;
+}
+
+#mensagem-acesso:not(:empty) {
+    color: #e5e7eb;
+}
+
+.acesso form button {
+    margin-top: 14px;
+}
+
+.acesso .requisito-senha {
+    margin: 6px 0 0;
+    font-size: 0.875rem;
+}
+
+.usuario-sessao {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+}
+
+.usuario-sessao span {
+    overflow-wrap: anywhere;
+}
+
+.usuario-sessao button {
+    flex: none;
+    width: auto;
+    margin: 0;
+}
+
+@media (max-width: 650px) {
+    .topo {
+        flex-wrap: wrap;
+    }
+
+    .usuario-sessao {
+        width: 100%;
+        justify-content: space-between;
+    }
+
+    .acesso {
+        margin-top: 24px;
+    }
+}

@@ -12,7 +12,7 @@
     <link rel="stylesheet" href="/static/style.css">
 
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.8/dist/chart.umd.min.js" defer></script>
-<script src="/static/app.js" defer></script>
+    <script type="module" src="/static/acesso.mjs"></script>
 </head>
 
 <body>
@@ -21,7 +21,7 @@
     <!-- CABEÇALHO DO APLICATIVO               -->
     <!-- ===================================== -->
 
-    <header class="topo">
+    <header id="topo" class="topo">
         <div class="marca">
             <span class="logo">💸</span>
             <h1>MyFinance</h1>
@@ -30,7 +30,50 @@
         <span class="subtitulo">
             Seu controle financeiro pessoal
         </span>
+        <div id="usuario-sessao" class="usuario-sessao" hidden>
+            <span id="nome-usuario"></span>
+            <button id="sair" type="button" class="botao-secundario">Sair</button>
+        </div>
     </header>
+
+    <main id="acesso" class="acesso">
+        <section class="painel" aria-labelledby="titulo-acesso">
+            <h2 id="titulo-acesso">Entrar</h2>
+            <p id="mensagem-acesso" role="status" aria-live="polite"></p>
+            <form id="form-login" method="post" action="/auth/login">
+                <label for="login-email">E-mail</label>
+                <input id="login-email" name="email" type="email" autocomplete="username" required>
+
+                <label for="login-senha">Senha</label>
+                <input id="login-senha" name="senha" type="password"
+                       autocomplete="current-password" required>
+
+                <button type="submit">Entrar</button>
+                <button type="button" id="mostrar-cadastro" class="botao-secundario">Criar conta</button>
+            </form>
+
+            <form id="form-cadastro" method="post" action="/auth/cadastro" hidden>
+                <label for="cadastro-nome">Nome</label>
+                <input id="cadastro-nome" name="nome" type="text" autocomplete="name"
+                       minlength="2" maxlength="120" required>
+
+                <label for="cadastro-email">E-mail</label>
+                <input id="cadastro-email" name="email" type="email" autocomplete="username" required>
+
+                <label for="cadastro-senha">Senha</label>
+                <input id="cadastro-senha" name="senha" type="password"
+                       autocomplete="new-password" minlength="12" maxlength="128"
+                       aria-describedby="cadastro-requisito-senha" required>
+                <p id="cadastro-requisito-senha" class="requisito-senha">Use pelo menos 12 caracteres.</p>
+
+                <button type="submit">Cadastrar</button>
+                <button type="button" id="mostrar-login" class="botao-secundario">Voltar ao login</button>
+            </form>
+        </section>
+    </main>
+
+    <div id="financeiro"></div>
+    <template id="modelo-financeiro">
 
 
     <!-- ===================================== -->
@@ -561,5 +604,6 @@
 
     </main>
 
+    </template>
 </body>
 </html>

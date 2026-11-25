@@ -17,7 +17,7 @@ O navegador carrega HTML, CSS e JavaScript servidos pelo FastAPI e consulta a AP
 | `database/` | Esquema, dados de exemplo e scripts históricos de evolução |
 | `frontend/` | Interface, estilos e JavaScript |
 
-Cadastro e login permanecem públicos. As rotas financeiras exigem o JWT no cabeçalho `Authorization: Bearer <token>`. O catálogo de categorias é global e somente leitura. A interface atual ainda não envia o token, portanto suas operações financeiras retornam HTTP 401 até a MF-004. Para desenvolvimento, faça login e teste a API por `/docs` ou por um cliente HTTP.
+Cadastre-se ou entre em `/app`. A interface valida a sessão em `/auth/me` antes de carregar dados financeiros e envia o JWT no cabeçalho `Authorization: Bearer <token>`. O token reside apenas na memória da página. Sair, expirar a sessão ou recarregar a página exige novo login. O catálogo de categorias continua global e somente leitura.
 
 O banco precisa das colunas `usuario_id` criadas pelo script `05_vincular_usuarios.sql`. Registros sem dono e vencimentos com pagamentos de titularidade inconsistente ficam fora dos fluxos da API até a reconciliação. A MF-005 tratará atribuição legada e restrições permanentes.
 
@@ -67,7 +67,7 @@ A integração é opcional. Para configurar o exportador, crie uma integração 
 
 ### Testes
 
-Na raiz, execute `python -m unittest discover -s backend/tests -v` com o interpretador do ambiente virtual. Os testes usam uma chave fictícia, TestClient e mocks de banco. A suíte roda sem PostgreSQL ou Notion.
+Na raiz, execute `python -m unittest discover -s backend/tests -v` com o interpretador do ambiente virtual. Os testes usam uma chave fictícia, TestClient e mocks de banco. A suíte roda sem PostgreSQL ou Notion. Com Node.js 24, Playwright e Chrome disponíveis, execute `node --test tests/frontend_session.cjs` para testar a interface com respostas HTTP simuladas. Use `MYFINANCE_PLAYWRIGHT_MODULE` para indicar um Playwright já disponível fora do projeto.
 
 ## English
 
@@ -84,7 +84,7 @@ The browser loads HTML, CSS, and JavaScript served by FastAPI and calls the API 
 | `database/` | Schema, sample data, and historical upgrade scripts |
 | `frontend/` | Interface, styles, and JavaScript |
 
-Registration and login remain public. Financial endpoints require a JWT in the `Authorization: Bearer <token>` header. The category catalog is global and read-only. The current interface does not send the token, so its financial requests receive HTTP 401 until MF-004. For development, log in and test the API through `/docs` or an HTTP client.
+Register or sign in at `/app`. The UI validates the session with `/auth/me` before loading financial data and sends the JWT in the `Authorization: Bearer <token>` header. The token lives only in page memory. Signing out, session expiry, or reloading the page requires a new sign-in. The category catalog remains global and read-only.
 
 The database must have the `usuario_id` columns created by `05_vincular_usuarios.sql`. Ownerless records and bills linked to payments with inconsistent ownership are excluded from the applicable API flows until reconciliation. MF-005 will address legacy ownership and permanent database constraints.
 
@@ -134,4 +134,4 @@ The integration is optional. Create a Notion integration, grant access to the ap
 
 ### Tests
 
-From the repository root, run `python -m unittest discover -s backend/tests -v` with the virtual environment interpreter. The tests use a fictitious key, TestClient, and database mocks. The suite runs without PostgreSQL or Notion.
+From the repository root, run `python -m unittest discover -s backend/tests -v` with the virtual environment interpreter. The tests use a fictitious key, TestClient, and database mocks. The suite runs without PostgreSQL or Notion. With Node.js 24, Playwright, and Chrome available, run `node --test tests/frontend_session.cjs` to test the UI with mocked HTTP responses. Set `MYFINANCE_PLAYWRIGHT_MODULE` to use an existing Playwright installation outside the project.
