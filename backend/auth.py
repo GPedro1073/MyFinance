@@ -1,24 +1,22 @@
+import os
+from datetime import datetime, timedelta, timezone
 
-from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel, EmailStr, Field
-from pwdlib import PasswordHash
+import jwt
+from fastapi import APIRouter, Depends, HTTPException
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from psycopg import errors
-import os
-from datetime import datetime, timedelta, timezone
+from pwdlib import PasswordHash
+from pydantic import BaseModel, EmailStr, Field
 
-import jwt
-from dotenv import load_dotenv
 from database import get_connection
-import os
-from datetime import datetime, timedelta, timezone
 
-import jwt
-from dotenv import load_dotenv
-from fastapi import Depends
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-load_dotenv()
+# The database module loads .env before configuration is read.
+JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY", "")
+if not JWT_SECRET_KEY.strip():
+    raise RuntimeError(
+        "JWT_SECRET_KEY must be set and non-blank. See backend/.env.example."
+    )
 
-JWT_SECRET_KEY = os.environ["JWT_SECRET_KEY"]
 JWT_ALGORITHM = "HS256"
 JWT_EXPIRATION_MINUTES = 60
 
@@ -29,9 +27,7 @@ def criar_token(usuario_id: int):
     payload = {
         "sub": str(usuario_id),
         "iat": agora,
-        "exp": agora + timedelta(
-            minutes=JWT_EXPIRATION_MINUTES
-        )
+        "exp": agora + timedelta(minutes=JWT_EXPIRATION_MINUTES)
     }
 
     return jwt.encode(
@@ -40,8 +36,6 @@ def criar_token(usuario_id: int):
         algorithm=JWT_ALGORITHM
     )
 
-
-# Validação do token JWT
 
 seguranca = HTTPBearer(auto_error=False)
 
@@ -90,27 +84,6 @@ router = APIRouter(prefix="/auth", tags=["Autenticação"])
 
 password_hash = PasswordHash.recommended()
 
-load_dotenv()
-
-JWT_SECRET_KEY = os.environ["JWT_SECRET_KEY"]
-JWT_ALGORITHM = "HS256"
-JWT_EXPIRATION_MINUTES = 60
-
-
-def criar_token(usuario_id: int):
-    agora = datetime.now(timezone.utc)
-
-    payload = {
-        "sub": str(usuario_id),
-        "iat": agora,
-        "exp": agora + timedelta(minutes=JWT_EXPIRATION_MINUTES)
-    }
-
-    return jwt.encode(
-        payload,
-        JWT_SECRET_KEY,
-        algorithm=JWT_ALGORITHM
-    )
 
 class UsuarioCriar(BaseModel):
     nome: str = Field(min_length=2, max_length=120)
@@ -179,7 +152,7 @@ def login_usuario(dados: UsuarioLogin):
             detail="E-mail ou senha inválidos"
         )
 
-    
+
     token = criar_token(usuario["id"])
 
     return {
