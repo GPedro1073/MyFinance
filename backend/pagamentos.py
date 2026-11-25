@@ -3,8 +3,9 @@ from calendar import monthrange
 from datetime import date
 
 from fastapi import APIRouter, HTTPException, Query
-from pydantic import BaseModel, Field
-from psycopg import errors
+from pydantic import BaseModel, ConfigDict
+
+from auth import UsuarioAtual
 
 from database import get_connection
 
@@ -15,10 +16,12 @@ router = APIRouter(
 
 
 class PagamentoCriar(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     data_pagamento: date
 
 
-def gerar_vencimentos(conn, ano: int, mes: int):
+def gerar_vencimentos(conn, ano: int, mes: int, usuario_id: int):
     competencia = date(ano, mes, 1)
     ultimo_dia = monthrange(ano, mes)[1]
 
@@ -27,8 +30,11 @@ def gerar_vencimentos(conn, ano: int, mes: int):
         SELECT id, descricao, valor,
                dia_vencimento, categoria_id
         FROM contas_fixas
-        WHERE ativa = TRUE
-        """
+        WHERE usuario_id = %s AND ativa = TRUE
+        ORDER BY id
+        FOR SHARE
+        """,
+        (usuario_id,)
     ).fetchall()
 
     for conta in contas:
@@ -62,13 +68,14 @@ def gerar_vencimentos(conn, ano: int, mes: int):
 
 @router.get("/vencimentos")
 def listar_vencimentos(
+    usuario: UsuarioAtual,
     ano: int = Query(ge=2000, le=2100),
     mes: int = Query(ge=1, le=12),
 ):
     competencia = date(ano, mes, 1)
 
     with get_connection() as conn:
-        gerar_vencimentos(conn, ano, mes)
+        gerar_vencimentos(conn, ano, mes, usuario["id"])
 
         registros = conn.execute(
             """
@@ -87,42 +94,52 @@ def listar_vencimentos(
                 END AS status
 
             FROM vencimentos v
+            JOIN contas_fixas c ON c.id = v.conta_fixa_id
             LEFT JOIN transacoes t
-                ON t.id = v.transacao_id
+                ON t.id = v.transacao_id AND t.usuario_id = c.usuario_id
 
-            WHERE v.competencia = %s
+            WHERE v.competencia = %s AND c.usuario_id = %s
+              AND (v.transacao_id IS NULL OR t.id IS NOT NULL)
             ORDER BY v.data_vencimento, v.id
             """,
-            (competencia,)
+            (competencia, usuario["id"])
         ).fetchall()
 
     return registros
 
 
+def bloquear_vencimento(conn, vencimento_id: int, usuario_id: int):
+    vencimento = conn.execute(
+        """
+        SELECT v.id, v.descricao, v.valor, v.categoria_id, v.transacao_id
+        FROM vencimentos v
+        JOIN contas_fixas c ON c.id = v.conta_fixa_id
+        WHERE v.id = %s AND c.usuario_id = %s
+          AND (v.transacao_id IS NULL OR EXISTS (
+              SELECT 1 FROM transacoes t
+              WHERE t.id = v.transacao_id AND t.usuario_id = c.usuario_id
+          ))
+        FOR UPDATE OF v
+        FOR SHARE OF c
+        """,
+        (vencimento_id, usuario_id)
+    ).fetchone()
+    if vencimento is None:
+        raise HTTPException(status_code=404, detail="Vencimento não encontrado")
+    return vencimento
+
+
 @router.post("/vencimentos/{vencimento_id}/pagar")
 def pagar_vencimento(
     vencimento_id: int,
-    dados: PagamentoCriar
+    dados: PagamentoCriar,
+    usuario: UsuarioAtual,
 ):
     # A transação no banco precisa ser atômica:
     # registrar despesa + vincular pagamento.
     with get_connection() as conn:
 
-        vencimento = conn.execute(
-            """
-            SELECT *
-            FROM vencimentos
-            WHERE id = %s
-            FOR UPDATE
-            """,
-            (vencimento_id,)
-        ).fetchone()
-
-        if vencimento is None:
-            raise HTTPException(
-                status_code=404,
-                detail="Vencimento não encontrado"
-            )
+        vencimento = bloquear_vencimento(conn, vencimento_id, usuario["id"])
 
         if vencimento["transacao_id"] is not None:
             raise HTTPException(
@@ -138,9 +155,10 @@ def pagar_vencimento(
                 tipo,
                 data_transacao,
                 categoria_id,
-                observacao
+                observacao,
+                usuario_id
             )
-            VALUES (%s, %s, 'despesa', %s, %s, %s)
+            VALUES (%s, %s, 'despesa', %s, %s, %s, %s)
             RETURNING id
             """,
             (
@@ -148,17 +166,19 @@ def pagar_vencimento(
                 vencimento["valor"],
                 dados.data_pagamento,
                 vencimento["categoria_id"],
-                "Pagamento de conta fixa"
+                "Pagamento de conta fixa",
+                usuario["id"],
             )
         ).fetchone()
 
         conn.execute(
             """
-            UPDATE vencimentos
+            UPDATE vencimentos v
             SET transacao_id = %s
-            WHERE id = %s
+            FROM contas_fixas c
+            WHERE v.id = %s AND c.id = v.conta_fixa_id AND c.usuario_id = %s
             """,
-            (transacao["id"], vencimento_id)
+            (transacao["id"], vencimento_id, usuario["id"])
         )
 
     return {
@@ -170,23 +190,9 @@ def pagar_vencimento(
 
 
 @router.post("/vencimentos/{vencimento_id}/estornar")
-def estornar_pagamento(vencimento_id: int):
+def estornar_pagamento(vencimento_id: int, usuario: UsuarioAtual):
     with get_connection() as conn:
-        vencimento = conn.execute(
-            """
-            SELECT id, transacao_id
-            FROM vencimentos
-            WHERE id = %s
-            FOR UPDATE
-            """,
-            (vencimento_id,)
-        ).fetchone()
-
-        if vencimento is None:
-            raise HTTPException(
-                status_code=404,
-                detail="Vencimento não encontrado"
-            )
+        vencimento = bloquear_vencimento(conn, vencimento_id, usuario["id"])
 
         if vencimento["transacao_id"] is None:
             raise HTTPException(
@@ -198,20 +204,24 @@ def estornar_pagamento(vencimento_id: int):
 
         conn.execute(
             """
-            UPDATE vencimentos
+            UPDATE vencimentos v
             SET transacao_id = NULL
-            WHERE id = %s
+            FROM contas_fixas c
+            WHERE v.id = %s AND c.id = v.conta_fixa_id AND c.usuario_id = %s
             """,
-            (vencimento_id,)
+            (vencimento_id, usuario["id"])
         )
 
-        conn.execute(
+        transacao = conn.execute(
             """
             DELETE FROM transacoes
-            WHERE id = %s
+            WHERE id = %s AND usuario_id = %s
+            RETURNING id
             """,
-            (transacao_id,)
-        )
+            (transacao_id, usuario["id"])
+        ).fetchone()
+        if transacao is None:
+            raise HTTPException(status_code=404, detail="Vencimento não encontrado")
 
     return {
         "mensagem": "Pagamento estornado",

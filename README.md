@@ -17,7 +17,9 @@ O navegador carrega HTML, CSS e JavaScript servidos pelo FastAPI e consulta a AP
 | `database/` | Esquema, dados de exemplo e scripts históricos de evolução |
 | `frontend/` | Interface, estilos e JavaScript |
 
-O cadastro, o login e `/auth/me` já existem. O isolamento das rotas financeiras por usuário ainda está em desenvolvimento. Execute esta revisão em localhost com dados de desenvolvimento.
+Cadastro e login permanecem públicos. As rotas financeiras exigem o JWT no cabeçalho `Authorization: Bearer <token>`. O catálogo de categorias é global e somente leitura. A interface atual ainda não envia o token, portanto suas operações financeiras retornam HTTP 401 até a MF-004. Para desenvolvimento, faça login e teste a API por `/docs` ou por um cliente HTTP.
+
+O banco precisa das colunas `usuario_id` criadas pelo script `05_vincular_usuarios.sql`. Registros sem dono e vencimentos com pagamentos de titularidade inconsistente ficam fora dos fluxos da API até a reconciliação. A MF-005 tratará atribuição legada e restrições permanentes.
 
 ### Instalação e execução
 
@@ -82,7 +84,9 @@ The browser loads HTML, CSS, and JavaScript served by FastAPI and calls the API 
 | `database/` | Schema, sample data, and historical upgrade scripts |
 | `frontend/` | Interface, styles, and JavaScript |
 
-Registration, login, and `/auth/me` are available. User isolation for financial routes is still in development. Run this revision on localhost with development data.
+Registration and login remain public. Financial endpoints require a JWT in the `Authorization: Bearer <token>` header. The category catalog is global and read-only. The current interface does not send the token, so its financial requests receive HTTP 401 until MF-004. For development, log in and test the API through `/docs` or an HTTP client.
+
+The database must have the `usuario_id` columns created by `05_vincular_usuarios.sql`. Ownerless records and bills linked to payments with inconsistent ownership are excluded from the applicable API flows until reconciliation. MF-005 will address legacy ownership and permanent database constraints.
 
 ### Installation and startup
 

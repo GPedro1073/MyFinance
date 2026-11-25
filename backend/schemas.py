@@ -7,6 +7,8 @@ from pydantic import BaseModel, Field, ConfigDict
 
 
 class TransacaoBase(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     descricao: str = Field(min_length=1, max_length=150)
     valor: Decimal = Field(gt=0, max_digits=12, decimal_places=2)
     tipo: Literal["receita", "despesa"]
@@ -34,6 +36,8 @@ class TransacaoResposta(TransacaoBase):
 # Modelos para contas fixas
 
 class ContaFixaBase(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     descricao: str = Field(min_length=1, max_length=150)
     valor: Decimal = Field(
         gt=0, max_digits=12, decimal_places=2

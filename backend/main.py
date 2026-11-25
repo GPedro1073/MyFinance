@@ -8,7 +8,7 @@ from psycopg import errors
 from pathlib import Path
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
-from auth import router as auth_router
+from auth import UsuarioAtual, router as auth_router
 
 from database import get_connection
 
@@ -41,14 +41,15 @@ app.mount(
 @app.get("/app", include_in_schema=False)
 def abrir_aplicativo():
     return FileResponse(FRONTEND_DIR / "index.html")
-def verificar_transacao_vinculada(conn, transacao_id):
+def verificar_transacao_vinculada(conn, transacao_id, usuario_id):
     vinculada = conn.execute(
         """
-        SELECT id
-        FROM vencimentos
-        WHERE transacao_id = %s
+        SELECT v.id
+        FROM vencimentos v
+        JOIN transacoes t ON t.id = v.transacao_id
+        WHERE t.id = %s AND t.usuario_id = %s
         """,
-        (transacao_id,)
+        (transacao_id, usuario_id)
     ).fetchone()
 
     if vinculada:
@@ -70,7 +71,7 @@ def inicio():
 
 # 2. Listar categorias
 @app.get("/categorias")
-def listar_categorias():
+def listar_categorias(usuario: UsuarioAtual):
     with get_connection() as conn:
         return conn.execute(
             "SELECT id, nome FROM categorias ORDER BY nome"
@@ -82,15 +83,17 @@ def listar_categorias():
     "/transacoes",
     response_model=list[TransacaoResposta]
 )
-def listar_transacoes():
+def listar_transacoes(usuario: UsuarioAtual):
     with get_connection() as conn:
         return conn.execute(
             """
             SELECT id, descricao, valor, tipo,
                    data_transacao, categoria_id, observacao
             FROM transacoes
+            WHERE usuario_id = %s
             ORDER BY data_transacao DESC, id DESC
-            """
+            """,
+            (usuario["id"],)
         ).fetchall()
 
 
@@ -99,16 +102,16 @@ def listar_transacoes():
     "/transacoes/{transacao_id}",
     response_model=TransacaoResposta
 )
-def buscar_transacao(transacao_id: int):
+def buscar_transacao(transacao_id: int, usuario: UsuarioAtual):
     with get_connection() as conn:
         transacao = conn.execute(
             """
             SELECT id, descricao, valor, tipo,
                    data_transacao, categoria_id, observacao
             FROM transacoes
-            WHERE id = %s
+            WHERE id = %s AND usuario_id = %s
             """,
-            (transacao_id,)
+            (transacao_id, usuario["id"])
         ).fetchone()
 
     if transacao is None:
@@ -126,16 +129,16 @@ def buscar_transacao(transacao_id: int):
     response_model=TransacaoResposta,
     status_code=201
 )
-def criar_transacao(dados: TransacaoCriar):
+def criar_transacao(dados: TransacaoCriar, usuario: UsuarioAtual):
     try:
         with get_connection() as conn:
             transacao = conn.execute(
                 """
                 INSERT INTO transacoes (
                     descricao, valor, tipo,
-                    data_transacao, categoria_id, observacao
+                    data_transacao, categoria_id, observacao, usuario_id
                 )
-                VALUES (%s, %s, %s, %s, %s, %s)
+                VALUES (%s, %s, %s, %s, %s, %s, %s)
                 RETURNING id, descricao, valor, tipo,
                           data_transacao, categoria_id, observacao
                 """,
@@ -146,6 +149,7 @@ def criar_transacao(dados: TransacaoCriar):
                     dados.data_transacao,
                     dados.categoria_id,
                     dados.observacao,
+                    usuario["id"],
                 )
             ).fetchone()
 
@@ -165,11 +169,12 @@ def criar_transacao(dados: TransacaoCriar):
 )
 def atualizar_transacao(
     transacao_id: int,
-    dados: TransacaoAtualizar
+    dados: TransacaoAtualizar,
+    usuario: UsuarioAtual,
 ):
     try:
         with get_connection() as conn:
-            verificar_transacao_vinculada(conn, transacao_id)
+            verificar_transacao_vinculada(conn, transacao_id, usuario["id"])
             transacao = conn.execute(
                 """
                 UPDATE transacoes
@@ -179,7 +184,7 @@ def atualizar_transacao(
                     data_transacao = %s,
                     categoria_id = %s,
                     observacao = %s
-                WHERE id = %s
+                WHERE id = %s AND usuario_id = %s
                 RETURNING id, descricao, valor, tipo,
                           data_transacao, categoria_id, observacao
                 """,
@@ -191,6 +196,7 @@ def atualizar_transacao(
                     dados.categoria_id,
                     dados.observacao,
                     transacao_id,
+                    usuario["id"],
                 )
             ).fetchone()
 
@@ -212,17 +218,17 @@ def atualizar_transacao(
 # 7. Excluir uma transação
 
 @app.delete("/transacoes/{transacao_id}")
-def excluir_transacao(transacao_id: int):
+def excluir_transacao(transacao_id: int, usuario: UsuarioAtual):
     with get_connection() as conn:
-        verificar_transacao_vinculada(conn, transacao_id)
+        verificar_transacao_vinculada(conn, transacao_id, usuario["id"])
 
         transacao = conn.execute(
             """
             DELETE FROM transacoes
-            WHERE id = %s
+            WHERE id = %s AND usuario_id = %s
             RETURNING id
             """,
-            (transacao_id,)
+            (transacao_id, usuario["id"])
         ).fetchone()
 
     if transacao is None:
@@ -246,15 +252,17 @@ def excluir_transacao(transacao_id: int):
     "/contas-fixas",
     response_model=list[ContaFixaResposta]
 )
-def listar_contas_fixas():
+def listar_contas_fixas(usuario: UsuarioAtual):
     with get_connection() as conn:
         return conn.execute(
             """
             SELECT id, descricao, valor, dia_vencimento,
                    categoria_id, ativa
             FROM contas_fixas
+            WHERE usuario_id = %s
             ORDER BY dia_vencimento, id
-            """
+            """,
+            (usuario["id"],)
         ).fetchall()
 
 
@@ -262,16 +270,16 @@ def listar_contas_fixas():
     "/contas-fixas/{conta_id}",
     response_model=ContaFixaResposta
 )
-def buscar_conta_fixa(conta_id: int):
+def buscar_conta_fixa(conta_id: int, usuario: UsuarioAtual):
     with get_connection() as conn:
         conta = conn.execute(
             """
             SELECT id, descricao, valor, dia_vencimento,
                    categoria_id, ativa
             FROM contas_fixas
-            WHERE id = %s
+            WHERE id = %s AND usuario_id = %s
             """,
-            (conta_id,)
+            (conta_id, usuario["id"])
         ).fetchone()
 
     if conta is None:
@@ -288,16 +296,16 @@ def buscar_conta_fixa(conta_id: int):
     response_model=ContaFixaResposta,
     status_code=201
 )
-def criar_conta_fixa(dados: ContaFixaCriar):
+def criar_conta_fixa(dados: ContaFixaCriar, usuario: UsuarioAtual):
     try:
         with get_connection() as conn:
             conta = conn.execute(
                 """
                 INSERT INTO contas_fixas (
                     descricao, valor, dia_vencimento,
-                    categoria_id, ativa
+                    categoria_id, ativa, usuario_id
                 )
-                VALUES (%s, %s, %s, %s, %s)
+                VALUES (%s, %s, %s, %s, %s, %s)
                 RETURNING id, descricao, valor,
                           dia_vencimento, categoria_id, ativa
                 """,
@@ -307,6 +315,7 @@ def criar_conta_fixa(dados: ContaFixaCriar):
                     dados.dia_vencimento,
                     dados.categoria_id,
                     dados.ativa,
+                    usuario["id"],
                 )
             ).fetchone()
 
@@ -325,7 +334,8 @@ def criar_conta_fixa(dados: ContaFixaCriar):
 )
 def atualizar_conta_fixa(
     conta_id: int,
-    dados: ContaFixaAtualizar
+    dados: ContaFixaAtualizar,
+    usuario: UsuarioAtual,
 ):
     try:
         with get_connection() as conn:
@@ -337,7 +347,7 @@ def atualizar_conta_fixa(
                     dia_vencimento = %s,
                     categoria_id = %s,
                     ativa = %s
-                WHERE id = %s
+                WHERE id = %s AND usuario_id = %s
                 RETURNING id, descricao, valor,
                           dia_vencimento, categoria_id, ativa
                 """,
@@ -348,6 +358,7 @@ def atualizar_conta_fixa(
                     dados.categoria_id,
                     dados.ativa,
                     conta_id,
+                    usuario["id"],
                 )
             ).fetchone()
 
@@ -366,15 +377,27 @@ def atualizar_conta_fixa(
     return conta
 
 @app.delete("/contas-fixas/{conta_id}")
-def excluir_conta_fixa(conta_id: int):
+def excluir_conta_fixa(conta_id: int, usuario: UsuarioAtual):
     with get_connection() as conn:
+        conta = conn.execute(
+            """
+            SELECT id FROM contas_fixas
+            WHERE id = %s AND usuario_id = %s
+            FOR UPDATE
+            """,
+            (conta_id, usuario["id"])
+        ).fetchone()
+        if conta is None:
+            raise HTTPException(status_code=404, detail="Conta fixa não encontrada")
+
         vinculada = conn.execute(
             """
-            SELECT id FROM vencimentos
-            WHERE conta_fixa_id = %s
+            SELECT v.id FROM vencimentos v
+            JOIN contas_fixas c ON c.id = v.conta_fixa_id
+            WHERE c.id = %s AND c.usuario_id = %s
             LIMIT 1
             """,
-            (conta_id,)
+            (conta_id, usuario["id"])
         ).fetchone()
 
         if vinculada:
@@ -389,10 +412,10 @@ def excluir_conta_fixa(conta_id: int):
         conta = conn.execute(
             """
             DELETE FROM contas_fixas
-            WHERE id = %s
+            WHERE id = %s AND usuario_id = %s
             RETURNING id
             """,
-            (conta_id,)
+            (conta_id, usuario["id"])
         ).fetchone()
 
     if conta is None:
@@ -412,6 +435,7 @@ def excluir_conta_fixa(conta_id: int):
 
 @app.get("/relatorios/mensal")
 def relatorio_mensal(
+    usuario: UsuarioAtual,
     ano: int = Query(ge=2000, le=2100),
     mes: int = Query(ge=1, le=12),
 ):
@@ -443,10 +467,11 @@ def relatorio_mensal(
                 ) AS despesas
 
             FROM transacoes
-            WHERE data_transacao >= %s
+            WHERE usuario_id = %s
+              AND data_transacao >= %s
               AND data_transacao < %s
             """,
-            (inicio, fim)
+            (usuario["id"], inicio, fim)
         ).fetchone()
 
         # Despesas agrupadas por categoria
@@ -460,14 +485,15 @@ def relatorio_mensal(
             JOIN categorias c
                 ON t.categoria_id = c.id
 
-            WHERE t.tipo = 'despesa'
+            WHERE t.usuario_id = %s
+              AND t.tipo = 'despesa'
               AND t.data_transacao >= %s
               AND t.data_transacao < %s
 
             GROUP BY c.id, c.nome
             ORDER BY total DESC
             """,
-            (inicio, fim)
+            (usuario["id"], inicio, fim)
         ).fetchall()
 
         # Contas fixas ativas
@@ -478,9 +504,10 @@ def relatorio_mensal(
                 dia_vencimento
 
             FROM contas_fixas
-            WHERE ativa = TRUE
+            WHERE usuario_id = %s AND ativa = TRUE
             ORDER BY dia_vencimento, id
-            """
+            """,
+            (usuario["id"],)
         ).fetchall()
 
     receitas = resumo["receitas"]

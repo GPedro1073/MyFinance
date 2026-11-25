@@ -1,5 +1,6 @@
 import os
 from datetime import datetime, timedelta, timezone
+from typing import Annotated
 
 import jwt
 from fastapi import APIRouter, Depends, HTTPException
@@ -78,6 +79,9 @@ def obter_usuario_atual(
         raise erro_autenticacao
 
     return usuario
+
+
+UsuarioAtual = Annotated[dict, Depends(obter_usuario_atual)]
 
 
 router = APIRouter(prefix="/auth", tags=["Autenticação"])
